@@ -1,0 +1,74 @@
+* Day 1 of AOC 2024
+
+https://adventofcode.com/2024/day/1
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+from day_1.utils import load
+
+l1, l2 = load("star_1_test.txt")
+
+l1.sort()
+l2.sort()
+
+total = 0
+for a, b in zip(l1,l2):
+    total += abs(a - b)
+
+return total
+
+#+end_src
+
+#+RESULTS:
+: 11
+
+#+begin_src python :results value
+from day_1.utils import load
+
+l1, l2 = load("star_1.txt")
+
+list(set(l1))
+l2.sort()
+
+similarity = 0
+
+for a in l1:
+    count = 0
+    for b in l2:
+        if a == b:
+            count += 1
+        elif b > a:
+            break
+    similarity += a * count
+
+return similarity
+
+#+end_src
+
+#+RESULTS:
+: 18805872
+
+
