@@ -45,6 +45,8 @@ return total
 #+RESULTS:
 : 11
 
+* Star 2
+
 #+begin_src python :results value
 from day_1.utils import load
 
