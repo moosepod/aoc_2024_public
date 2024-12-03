@@ -1,0 +1,71 @@
+* Day 3 of AOC 2024
+
+https://adventofcode.com/2024/day/3 
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+import re
+
+from utils import load_s
+
+s = load_s(3, "puzzle.txt")
+mults = re.findall(r"mul\((\d+),(\d+)\)", s)
+
+return sum([int(a)*int(b) for a,b in mults])
+#+end_src
+
+#+RESULTS:
+: 190604937
+
+* Star 2
+#+begin_src python :results value
+import re
+
+from utils import load_s
+
+s = load_s(3, "puzzle.txt")
+functions = re.findall(r"(mul|do|don't)\((\d+)?,?(\d+)?\)", s)
+
+active = True
+
+s = 0
+
+for f, a, b in functions:
+    if f == "do":
+        active = True
+    elif f == "don't":
+        active = False
+    elif active and a and b:
+        s += int(a) * int(b)
+
+return s
+#+end_src
+
+#+RESULTS:
+: 82857512
+
+
+
