@@ -46,9 +46,7 @@ def check_directions(g: dict, p: Point) -> int:
 grid,_ = load_grid(4,"puzzle.txt")
 
 return sum([check_directions(grid,p) for p in grid.keys()])
-                
 
-return count
 #+end_src
 
 #+RESULTS:
