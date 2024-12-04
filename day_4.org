@@ -1,0 +1,82 @@
+* Day 4 of AOC 2024
+
+https://adventofcode.com/2024/day/4
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+
+from utils import load_grid, DIRECTIONS, Point
+
+target = 'XMAS'
+
+def check_direction(g: dict, p: Point, d: Point) -> int:
+    for i in range(0,4):
+        p2 = (p[0] + d[0] * i, p[1] + d[1] * i)
+        if g.get(p2) != target[i]:
+            return 0
+
+    return 1
+
+def check_directions(g: dict, p: Point) -> int:
+    return sum([check_direction(g,p,d) for d in DIRECTIONS.values()])
+
+grid,_ = load_grid(4,"puzzle.txt")
+
+return sum([check_directions(grid,p) for p in grid.keys()])
+                
+
+return count
+#+end_src
+
+#+RESULTS:
+: 2567
+
+* Star 2
+#+begin_src python :results value
+
+from utils import load_grid, DIRECTIONS, padd, Point
+
+XMAS = ('MMSS','SSMM','MSMS','SMSM')
+
+def gc(grid: dict, p: Point, d: Point)->str:
+    return grid.get(padd(p,d),'.')
+
+def mas_s(grid: dict, p: Point)->str:
+    return gc(grid, p, DIRECTIONS["NW"]) + gc(grid,p, DIRECTIONS["NE"]) + gc(grid, p, DIRECTIONS["SW"]) + gc(grid, p, DIRECTIONS["SE"])
+
+def check_mas(grid: dict, p: Point) -> int:
+    return 1 if mas_s(grid,p) in XMAS else 0
+
+grid, _ = load_grid(4,"puzzle.txt")
+
+return sum([check_mas(grid,p) for p in grid.keys() if grid[p] == 'A'])
+#+end_src
+
+#+RESULTS:
+: 2029
+
+
+
