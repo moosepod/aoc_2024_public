@@ -1,0 +1,114 @@
+* Day 5 of AOC 2024
+
+https://adventofcode.com/2024/day/5
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+
+from utils import load_s
+
+def median(l: list):
+    return int(l[int(len(l)/2)])
+
+def check_update(update: list[str], before: dict):
+    for i in range(0,len(update)):
+        il = update[i]
+        for j in range(0,len(update)):
+            jl = update[j]            
+            if j > i and il not in before.get(jl,[]):
+                return False
+            if j < i and il in before.get(jl,[]):
+                return False
+    return True
+
+t = load_s(5, "puzzle.txt")
+
+rules = [(x.split('|')[0], x.split('|')[1]) for x in t.split("\n") if "|" in x]
+updates = [x.split(',') for x in t.split("\n") if "," in x]
+before = {y: [x2 for x2,y2 in rules if y2 == y] for x,y in rules}
+
+valid = []
+for update in updates:
+    if check_update(update, before):
+        valid.append(update)
+        
+return sum([median(update) for update in valid])
+#+end_src
+
+#+RESULTS:
+: 5732
+
+* Star 2
+#+begin_src python :results value
+from utils import load_s
+from functools import cmp_to_key
+
+def median(l: list):
+    return int(l[int(len(l)/2)])
+
+def check_update(update: list[str], before: dict):
+    for i in range(0,len(update)):
+        il = update[i]
+        for j in range(0,len(update)):
+            jl = update[j]            
+            if j > i and il not in before.get(jl,[]):
+                return False
+            if j < i and il in before.get(jl,[]):
+                return False
+    return True
+
+def cmp_page(before):
+    def _cmp(a,b):
+        if a==b:
+            return 0
+
+        if a in before.get(b,[]):
+            return -1
+
+        return 1
+
+    return _cmp
+
+t = load_s(5, "puzzle.txt")
+
+rules = [(x.split('|')[0], x.split('|')[1]) for x in t.split("\n") if "|" in x]
+updates = [x.split(',') for x in t.split("\n") if "," in x]
+before = {y: [x2 for x2,y2 in rules if y2 == y] for x,y in rules}
+
+invalid = []
+for update in updates:
+    if not check_update(update, before):
+        invalid.append(sorted(update, key=cmp_to_key(cmp_page(before))))
+
+return sum([median(update) for update in invalid])
+
+#+end_src
+
+#+RESULTS:
+: 4716
+
+
+
