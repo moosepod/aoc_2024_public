@@ -1,6 +1,8 @@
 type Point = tuple[int,int]
 type Size = tuple[int,int]
 
+type Rect = tuple[Point,Size]
+
 type Grid = dict[Point,str]
 
 type SizedGrid = tuple[Grid,Size]
@@ -16,6 +18,9 @@ DIRECTIONS = {
     "N": (0,-1), 
     }
 
+###
+### Loading puzzle data
+###
 def load_s(puzzle_number: int, filename: str) -> str:
     with open(f"day_{puzzle_number}/{filename}") as f:
         return f.read()
@@ -35,10 +40,23 @@ def load_grid(puzzle_number: int, filename: str) -> SizedGrid:
                         width = x
     return g, (width+1,height)
 
-def padd(p1: tuple[int,int], p2: tuple[int,int]):
+###
+### POINTS
+###
+def padd(p1: Point, p2: Point) -> Point:
     return (p1[0] + p2[0], p1[1] + p2[1])
 
+def p_in_rect(p: Point, r: Rect):
+    return p[0] >= r[0][0] and p[1] >= r[0][1] and p[0] < r[0][0] + r[1][0]+1 and p[1] < r[0][1] + r[1][1]+1
 
+###
+### GRIDS
+###
 
-
-    
+def dump_grid(grid: Grid, size: Size, message: str) -> str:
+    s = message
+    for row in range(0,size[1]):
+        s+="\n"
+        for col in range(0,size[1]):
+            s+=grid[(col,row)]
+    return s

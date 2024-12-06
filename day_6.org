@@ -1,0 +1,156 @@
+* Day 6 of AOC 2024
+
+https://adventofcode.com/2024/day/6
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+from utils import load_grid, Grid, Point, p_in_rect, padd, DIRECTIONS, dump_grid
+
+NEXT_D = {"^": DIRECTIONS["N"],
+          ">": DIRECTIONS["E"],
+          "v": DIRECTIONS["S"],
+          "<": DIRECTIONS["W"],
+          }
+
+
+ROTATE = {"^": ">",
+          ">": "v",
+          "v": "<",
+          "<": "^"}
+PASSABLE = (".","X")
+
+
+def find_guard(grid: Grid) -> Point:
+    for p in grid.keys():
+        if grid[p] == '^':
+            return p
+
+    raise Exception('Not Found')
+
+grid, size = load_grid(6,"puzzle.txt")
+bounds = ((0,0),size)
+
+p = find_guard(grid)
+path_length = 1
+visited = {p: True}
+while p_in_rect(p,bounds):
+    guard = grid[p]
+    
+    next_p = padd(p, NEXT_D[guard])
+
+    if grid.get(next_p) in PASSABLE:
+        grid[p] = "X"
+        p = next_p
+        visited[p] = True
+        grid[p] = guard
+        path_length += 1
+    else:
+        if not grid.get(next_p):
+            return len(visited)
+        grid[p] = ROTATE[guard]
+
+return path_length
+
+#+end_src
+
+#+RESULTS:
+: 4722
+
+* Star 2
+
+This solution is inefficient and takes a minutes to run.
+
+#+begin_src python :results value
+import time
+from utils import load_grid, Grid, Point, p_in_rect, padd, DIRECTIONS, dump_grid, Rect
+
+NEXT_D = {"^": DIRECTIONS["N"],
+          ">": DIRECTIONS["E"],
+          "v": DIRECTIONS["S"],
+          "<": DIRECTIONS["W"],
+          }
+
+
+ROTATE = {"^": ">",
+          ">": "v",
+          "v": "<",
+          "<": "^"}
+PASSABLE = (".","X")
+
+
+def find_guard(grid: Grid) -> Point:
+    for p in grid.keys():
+        if grid[p] == '^':
+            return p
+
+    raise Exception('Not Found')
+
+def is_loop(grid: Grid, bounds: Rect, start_p: Point, obstruction_p: Point) -> int:
+    p = start_p
+    if p == obstruction_p:
+        return False
+    
+    grid = grid.copy()
+    grid[obstruction_p] = "O"
+    visited = {(p,grid[p]): True}
+    while p_in_rect(p,bounds):
+        guard = grid[p]
+        next_p = padd(p, NEXT_D[guard])
+        if grid.get(next_p) in PASSABLE:
+            grid[p] = "X"
+            p = next_p
+            if visited.get((p,guard)):
+                return grid
+            visited[(p,guard)] = True
+            grid[p] = guard
+        else:
+            if not grid.get(next_p):
+                return False
+            grid[p] = ROTATE[guard]
+
+    return False
+
+grid, size = load_grid(6,"puzzle.txt")
+bounds = ((0,0),size)
+
+p = find_guard(grid)
+
+t = time.time()
+count = 0
+for row in range(0,size[1]):    
+    for col in range(0,size[1]):
+        result = is_loop(grid, bounds, p, (col,row))
+        if result:
+            count += 1
+
+return count, time.time() - t
+#+end_src
+
+#+RESULTS:
+| 1602 | 37.55056118965149 |
+
+
+
