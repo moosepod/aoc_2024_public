@@ -1,0 +1,94 @@
+* Day N of AOC 2024
+
+https://adventofcode.com/2024/day/N
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+from utils import load_s
+import operator
+
+s = load_s(7, "puzzle.txt")
+
+equations = []
+
+def check(target: int, n: int, v: list) -> bool:
+    print(target, n, v)
+    if len(v) == 0:
+        print()
+        return target == n
+
+    return check(target, n+v[0], v[1:]) or check(target, n*v[0], v[1:])    
+
+for line in s.split("\n"):
+    if line:
+        r = line.strip().split(": ")
+        target = int(r[0])
+        values = [int(x) for x in r[1].split(" ")]
+
+        if check(target, values[0], values[1:]):
+            equations.append(target)
+
+return sum(equations)
+#+end_src
+
+#+RESULTS:
+: 303876485655
+
+* Star 2
+#+begin_src python :results value
+from utils import load_s
+import operator
+
+s = load_s(7, "puzzle.txt")
+
+equations = []
+
+def check(target: int, n: int, v: list) -> bool:
+    print(target, n, v)
+    if len(v) == 0:
+        print()
+        return target == n
+
+    return check(target, n+v[0], v[1:]) or check(target, n*v[0], v[1:]) or check(target, int(str(n) + str(v[0])), v[1:])
+
+for line in s.split("\n"):
+    if line:
+        r = line.strip().split(": ")
+        target = int(r[0])
+        values = [int(x) for x in r[1].split(" ")]
+
+        if check(target, values[0], values[1:]):
+            equations.append(target)
+
+return sum(equations)
+
+#+end_src
+
+#+RESULTS:
+: 146111650210682
+
+
+
