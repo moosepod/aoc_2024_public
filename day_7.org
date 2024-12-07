@@ -1,6 +1,6 @@
-* Day N of AOC 2024
+* Day 7 of AOC 2024
 
-https://adventofcode.com/2024/day/N
+https://adventofcode.com/2024/day/7
 * Initialize
 
 #+begin_src elisp
