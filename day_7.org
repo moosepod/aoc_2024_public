@@ -34,9 +34,7 @@ s = load_s(7, "puzzle.txt")
 equations = []
 
 def check(target: int, n: int, v: list) -> bool:
-    print(target, n, v)
     if len(v) == 0:
-        print()
         return target == n
 
     return check(target, n+v[0], v[1:]) or check(target, n*v[0], v[1:])    
@@ -65,9 +63,7 @@ s = load_s(7, "puzzle.txt")
 equations = []
 
 def check(target: int, n: int, v: list) -> bool:
-    print(target, n, v)
     if len(v) == 0:
-        print()
         return target == n
 
     return check(target, n+v[0], v[1:]) or check(target, n*v[0], v[1:]) or check(target, int(str(n) + str(v[0])), v[1:])
