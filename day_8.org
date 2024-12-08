@@ -1,0 +1,86 @@
+* Day 8 of AOC 2024
+
+https://adventofcode.com/2024/day/8
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+import re
+from itertools import permutations 
+from utils import load_grid, dump_grid, WIDTH, HEIGHT, pmult, padd, p_in_rect
+
+grid, size = load_grid(8, "puzzle.txt")
+bounds = ((0,0),size)
+
+antenna_data = {c: [p for p,c2 in grid.items() if c == c2] for c in grid.values() if re.match(r'^[A-Za-z0-9]$',c)}
+
+antinodes = {}
+
+for l, antennas in antenna_data.items():
+    for p1, p2 in permutations(antennas, 2):
+        d = padd(p1, pmult(p2,-1))
+        a = padd(p1, d)
+        if p_in_rect(a, bounds):
+            antinodes[a] = True
+            grid[a] = '#'
+
+return len(antinodes)
+#+end_src
+
+#+RESULTS:
+: 220
+
+* Star 2
+#+begin_src python :results value
+
+import re
+from itertools import permutations 
+from utils import load_grid, dump_grid, WIDTH, HEIGHT, pmult, padd, p_in_rect
+
+grid, size = load_grid(8, "puzzle.txt")
+bounds = ((0,0),size)
+
+antenna_data = {c: [p for p,c2 in grid.items() if c == c2] for c in grid.values() if re.match(r'^[A-Za-z0-9]$',c)}
+
+antinodes = {}
+
+for l, antennas in antenna_data.items():
+    for p1, p2 in permutations(antennas, 2):
+        d = padd(p1, pmult(p2,-1))
+        a = p1
+        while p_in_rect(a, bounds):
+            antinodes[a] = True
+            grid[a] = '#'
+            a = padd(a, d)
+
+return len(antinodes)            
+
+#+end_src
+
+#+RESULTS:
+: 813
+
+
+

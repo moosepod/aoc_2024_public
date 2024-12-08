@@ -7,6 +7,16 @@ type Grid = dict[Point,str]
 
 type SizedGrid = tuple[Grid,Size]
 
+###
+### Constants
+###
+
+# Keys for point/size/rect tuples
+WIDTH = 0
+HEIGHT = 1
+X = 0
+Y = 1
+
 DIRECTIONS = {
     "NE": (1,-1), 
     "E": (1,0), 
@@ -46,8 +56,11 @@ def load_grid(puzzle_number: int, filename: str) -> SizedGrid:
 def padd(p1: Point, p2: Point) -> Point:
     return (p1[0] + p2[0], p1[1] + p2[1])
 
+def pmult(p: Point, n: int) -> Point:
+    return (p[0] * n, p[1] * n)
+
 def p_in_rect(p: Point, r: Rect):
-    return p[0] >= r[0][0] and p[1] >= r[0][1] and p[0] < r[0][0] + r[1][0]+1 and p[1] < r[0][1] + r[1][1]+1
+    return p[0] >= r[0][0] and p[1] >= r[0][1] and p[0] < r[0][0] + r[1][0] and p[1] < r[0][1] + r[1][1]
 
 ###
 ### GRIDS
