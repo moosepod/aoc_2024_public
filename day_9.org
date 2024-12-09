@@ -1,0 +1,126 @@
+* Day N of AOC 2024
+
+https://adventofcode.com/2024/day/N
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+from utils import load_s
+
+data = load_s(9, "puzzle.txt").strip()
+
+def disk_to_str(disk) -> str:
+    return ''.join(['.' if c is None else str(c) for c in disk])
+
+def checksum(disk) -> int:
+    return sum([i * int(c) for i, c in enumerate(disk) if c is not None])
+        
+
+disk = []
+id = 0
+free = False
+free_idx = -1
+for idx, r in enumerate(data):
+    if free:
+        if free_idx < 0:
+            free_idx = len(disk)
+        disk.extend([None] * int(r))
+        free = False
+    else:
+        disk.extend([id] * int(r))
+        id+=1
+        free = True
+
+for i in range(len(disk) - 1, -1, -1):
+    disk[free_idx] = disk[i]
+    disk[i] = None
+    while free_idx < i and disk[free_idx] is not None:
+        free_idx += 1
+    if free_idx == i:
+        break
+
+return checksum(disk)
+#+end_src
+
+#+RESULTS:
+: 6225730762521
+
+* Star 2
+#+begin_src python :results value
+
+from utils import load_s
+
+data = load_s(9, "puzzle.txt").strip()
+
+def disk_to_str(disk) -> str:
+    return ''.join(['.' if c is None else str(c) for c in disk])
+
+def checksum(disk) -> int:
+    return sum([i * int(c) for i, c in enumerate(disk) if c is not None])
+
+disk = []
+id = 0
+free = False
+file_blocks = {}
+free_blocks = []
+for idx, r in enumerate(data):
+    if free:
+        free_blocks.append((len(disk), int(r)))
+        disk.extend([None] * int(r))
+        free = False
+    else:
+        file_blocks[id] = (len(disk), int(r))        
+        disk.extend([id] * int(r))
+        id+=1 
+        free = True
+
+x = []
+
+for id in range(max(file_blocks.keys()), -1, -1):
+    free_blocks = [(i,l) for i,l in free_blocks if l > 0]
+    idx = 0
+    file_idx, file_size = file_blocks[id]
+    while idx < len(free_blocks):
+        free_idx, free_size = free_blocks[idx]
+        if free_idx > file_idx:
+            break
+        if file_size <= free_size:
+            free_blocks[idx] = (free_idx + file_size, free_size - file_size)
+            for i in range(0, file_size):
+                disk[i+free_idx] = id
+                disk[i+file_idx] = None
+            free_blocks.append((file_idx, file_size))
+            break
+        idx+=1
+
+
+return checksum(disk)
+#+end_src
+
+#+RESULTS:
+: 6250605700557
+
+
+
