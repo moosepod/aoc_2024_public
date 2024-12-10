@@ -1,0 +1,94 @@
+* Day N of AOC 2024
+
+https://adventofcode.com/2024/day/N
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+from utils import load_grid_int, dump_grid, Grid, Point, DIRECTIONS, padd
+
+def find_endpoints(grid: Grid, p: Point,  endpoints: list):
+    if grid[p] == 9:
+        endpoints.append(p)
+        return
+
+    for direction in [DIRECTIONS["N"],DIRECTIONS["E"],DIRECTIONS["S"],DIRECTIONS["W"]]:
+        p2 = padd(p, direction)
+        if grid.get(p2) is not None:
+            if grid[p] + 1 == grid[p2]:
+                find_endpoints(grid, p2, endpoints)
+
+grid, size = load_grid_int(10, "puzzle.txt")
+
+trailheads = [p for p,v in grid.items() if v == 0]
+
+score = 0
+for p in trailheads:
+    endpoints = []
+    find_endpoints(grid, p, endpoints)
+    score += len(set(endpoints))
+
+return score
+
+#+end_src
+
+#+RESULTS:
+: 557
+
+* Star 2
+#+begin_src python :results value
+
+from utils import load_grid_int, dump_grid, Grid, Point, DIRECTIONS, padd
+
+def find_paths(grid: Grid, p: Point, path: str, paths: list[str]):
+    if grid[p] == 9:
+        paths.append(path)
+        return
+
+    for direction in [DIRECTIONS["N"],DIRECTIONS["E"],DIRECTIONS["S"],DIRECTIONS["W"]]:
+        p2 = padd(p, direction)
+        if grid.get(p2) is not None:
+            if grid[p] + 1 == grid[p2]:
+                find_paths(grid, p2, f"{path} {p2}", paths)
+
+grid, size = load_grid_int(10, "puzzle.txt")
+
+trailheads = [p for p,v in grid.items() if v == 0]
+
+score = 0
+for p in trailheads:
+    paths = []
+    find_paths(grid, p,str(p), paths)
+    score += len(set(paths))
+
+return score
+
+#+end_src
+
+#+RESULTS:
+: 1062
+
+
+

@@ -50,6 +50,11 @@ def load_grid(puzzle_number: int, filename: str) -> SizedGrid:
                         width = x
     return g, (width+1,height)
 
+def load_grid_int(puzzle_number: int, filename: str) -> SizedGrid:
+    grid, size = load_grid(puzzle_number, filename)
+
+    return {p: int(v) if v != '.' else None for p,v in grid.items()}, size
+
 ###
 ### POINTS
 ###
@@ -71,5 +76,6 @@ def dump_grid(grid: Grid, size: Size, message: str) -> str:
     for row in range(0,size[1]):
         s+="\n"
         for col in range(0,size[1]):
-            s+=grid[(col,row)]
+            c = grid[(col,row)]
+            s+=str(c) if c is not None else '.'
     return s
