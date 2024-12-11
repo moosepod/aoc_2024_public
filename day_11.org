@@ -1,0 +1,137 @@
+* Day N of AOC 2024
+
+https://adventofcode.com/2024/day/N
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1 
+
+#+begin_src python :results value
+from utils import load_s
+
+class StoneExpander:
+    def __init__(self, stones):
+        self.stones = stones
+        self.idx = 0
+        self.next_val = None
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.next_val is not None:
+            v = self.next_val
+            self.next_val = None
+            return v
+
+        if self.idx >= len(self.stones):
+            raise StopIteration
+        
+        v = self.stones[self.idx]
+
+        self.idx +=1
+        
+        if v == 0:
+            return 1
+
+        sv = str(v)
+        if len(sv) % 2 == 0:
+            middle = int(len(sv)/2)
+            n1,n2 = int(sv[0:middle]), int(sv[middle:])
+            self.next_val = n2
+            return n1
+
+        return v * 2024
+
+def solve(stones: list, iters: int) -> list:
+    for i in range(0,iters):
+        stones = [stone for stone in StoneExpander(stones)]
+
+    return stones
+
+filename = "puzzle.txt"
+stones = [int(c) for c in load_s(11,filename).split('\n')[0].split(' ')]
+
+return len(solve(stones, 25))
+#+end_src
+
+#+RESULTS:
+: 186424
+
+* Star 2
+#+begin_src python :results value
+from utils import load_s
+
+def solve(stones: list, iters: int) -> list:
+    for i in range(0,iters):
+        stones = [stone for stone in StoneExpander(stones)]
+        print(i,len(stones))
+
+    return stones
+
+filename = "puzzle.txt"
+stones_data = [int(c) for c in load_s(11,filename).split('\n')[0].split(' ')]
+
+def add_stone(stone: int, stones: dict[int, int],count=1):
+    if stone is None:
+        return
+    if not stones.get(stone):
+        stones[stone] = 0
+    stones[stone] += count
+
+def apply_rules(n: int) -> tuple[int,int]:
+    if n == 0:
+        return 1, None
+
+    sv = str(n)
+    if len(sv) % 2 == 0:
+        middle = int(len(sv)/2)
+        return int(sv[0:middle]), int(sv[middle:])
+    
+    return n * 2024, None
+
+def solve(stones: dict[int,int], iters: int):
+    for iter in range(0,iters):
+        items = list(stones.items())
+        for n,c in items:
+            stones[n] -= c
+            s1, s2 = apply_rules(n)
+            add_stone(s1, stones, count=c)
+            add_stone(s2, stones, count=c)            
+            
+    return sum(stones.values())
+    
+stones = {}
+for stone in stones_data:
+    add_stone(stone, stones)
+
+return solve(stones, 75)
+
+#return len(solve(stones, 35))
+#+end_src
+
+#+RESULTS:
+: 219838428124832
+
+
+
