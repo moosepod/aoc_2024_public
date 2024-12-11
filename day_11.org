@@ -128,7 +128,6 @@ for stone in stones_data:
 
 return solve(stones, 75)
 
-#return len(solve(stones, 35))
 #+end_src
 
 #+RESULTS:
