@@ -1,0 +1,176 @@
+* Day 14 of AOC 2024
+
+https://adventofcode.com/2024/day/14
+
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+* Star 1
+
+#+begin_src python :results value
+from math import ceil, floor
+from operator import mul
+from utils import load_s, VectorPoint, Size, padd, Grid, dump_grid, X, Y, WIDTH, HEIGHT, P, V, padd_mod, Rect, p_in_rect
+import re
+rx = re.compile(r"p=(-?\d+),(-?\d+) v=(-?\d+),(-?\d+)")
+
+def line_to_robot(line: str) -> VectorPoint:
+    m = rx.search(line)
+    if not m:
+        raise Exception(line)
+    return ((int(m[1]),int(m[2])),(int(m[3]),int(m[4]))) 
+
+data = [("test.txt", (11,7)),
+        ("puzzle.txt", (101,103))]
+data_idx = 1
+
+grid_size = data[data_idx][1]
+s = load_s(14,data[data_idx][0])
+
+robots = [line_to_robot(line) for line in s.split("\n") if line]
+
+def count(robots: list[VectorPoint]) -> Grid:
+    grid = {}
+    for robot in robots:
+        if grid.get(robot[P]) is None:
+            grid[robot[P]] = 0
+        grid[robot[P]]+=1
+
+    return grid
+
+def iterate(robots: list[VectorPoint], size: Size, seconds: int):
+    for i in range(0,seconds):
+        robots = [( padd_mod(robot[P],robot[V], size), robot[V]) for robot in robots]
+    return robots
+
+def quadrant(q: int, size: Size) -> Rect:
+    rs = (floor(size[WIDTH]/2),floor(size[HEIGHT]/2))
+    if q == 0:
+        return ((0,0), rs)
+    if q == 1:
+        return ((ceil(size[WIDTH]/2),0), rs)
+    if q == 2:
+        return ((0, ceil(size[HEIGHT]/2)), rs)
+
+    return ((ceil(size[WIDTH]/2), ceil(size[HEIGHT]/2)), rs)
+    
+def count_in_bounds(grid: Grid, bounds: Rect) -> int:
+    return sum([v for p,v in grid.items() if p_in_rect(p, bounds)])
+
+robots = iterate(robots, grid_size,100)
+counted = count(robots)
+r = 1
+for q in range(0,4):
+    r *= count_in_bounds(counted, quadrant(q,grid_size))
+
+return r
+
+return dump_grid(counted, grid_size, "", int_grid=True)
+#+end_src
+
+#+RESULTS:
+: 225648864
+
+* Star 2
+
+All points cycle at 10403
+
+373 intrigung
+#+begin_src python :results value
+
+from math import ceil, floor
+from operator import mul
+from utils import load_s, VectorPoint, Size, padd, Grid, dump_grid, X, Y, WIDTH, HEIGHT, P, V, padd_mod, Rect, p_in_rect, Point
+import re
+rx = re.compile(r"p=(-?\d+),(-?\d+) v=(-?\d+),(-?\d+)")
+
+def line_to_robot(line: str) -> VectorPoint:
+    m = rx.search(line)
+    if not m:
+        raise Exception(line)
+    return ((int(m[1]),int(m[2])),(int(m[3]),int(m[4]))) 
+
+data = [("test.txt", (11,7)),
+        ("puzzle.txt", (101,103))]
+data_idx = 1
+
+grid_size = data[data_idx][1]
+s = load_s(14,data[data_idx][0])
+
+robots = [line_to_robot(line) for line in s.split("\n") if line]
+
+def count(robots: list[VectorPoint]) -> Grid:
+    grid = {}
+    for robot in robots:
+        if grid.get(robot[P]) is None:
+            grid[robot[P]] = 0
+        grid[robot[P]]+=1
+
+    return grid
+
+def iterate(robots: list[VectorPoint], size: Size, seconds: int) -> list[VectorPoint]:
+    for i in range(0,seconds):
+        robots = [( padd_mod(robot[P],robot[V], size), robot[V]) for robot in robots]
+    return robots
+    
+def quadrant(q: int, size: Size) -> Rect:
+    rs = (floor(size[WIDTH]/2),floor(size[HEIGHT]/2))
+    if q == 0:
+        return ((0,0), rs)
+    if q == 1:
+        return ((ceil(size[WIDTH]/2),0), rs)
+    if q == 2:
+        return ((0, ceil(size[HEIGHT]/2)), rs)
+
+    return ((ceil(size[WIDTH]/2), ceil(size[HEIGHT]/2)), rs)
+    
+def count_in_bounds(grid: Grid, bounds: Rect) -> int:
+    return sum([v for p,v in grid.items() if p_in_rect(p, bounds)])
+
+def find_robot_cycles(robots: list[VectorPoint], size: Size) -> Grid:
+    cycles = []
+    for robot in robots:
+        visited = {}
+        p = robot[P]
+        while p not in visited:
+            visited[p] = True
+            p = padd_mod(p,robot[V], size)
+        cycles.append(list(visited.keys()))
+            
+    return cycles
+
+def dump_iters(robots: list[VectorPoint], size: Size, max_cycle_count: int, f):
+    for i in range(1, max_cycle_count+1):
+        robots = iterate(robots, grid_size,1)    
+        f.write(dump_grid(count(robots),grid_size, f"Iteration: {i}", int_grid=True))
+        f.write("\n")
+        f.write("\n")                        
+
+# Calcuated this empirically using find_robot_cycles
+max_cycle_count = 10403
+
+with open("output/day_14.txt","w") as f:
+    dump_iters(robots, grid_size, max_cycle_count, f)
+
+return "Look for it yourself in the file."
+
+#+end_src
+
