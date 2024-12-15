@@ -1,0 +1,381 @@
+* Day 15 of AOC 2024
+
+https://adventofcode.com/2024/day/15
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+
+from utils import load_s, Grid, Point, dump_grid, Size, HEIGHT, WIDTH, DIRECTIONS, padd, pmult, X, Y
+
+INSTRUCTION_MAP = {"^": DIRECTIONS["N"],
+                   ">": DIRECTIONS["E"],
+                   "v": DIRECTIONS["S"],
+                   "<": DIRECTIONS["W"]}
+
+def load(filename: str) -> tuple[Grid,str]:
+    instructions = ""
+    grid = {}
+    robot_p: Point = (0,0)
+    size: Size = (0,0)
+    row = 0
+
+    for line in load_s(15, filename).split("\n"):
+        if line:
+            line = line.strip()
+            if line.startswith("#"):
+                for col, c in enumerate(line):
+                    if c == "@":
+                        robot_p = (col,size[HEIGHT])
+                        c = "."
+                    grid[(col,size[HEIGHT])] = c
+                size = (len(line), size[HEIGHT]+1)
+            else:
+                instructions += line
+    return grid, size, instructions, robot_p
+
+EMPTY = ('.', None)
+
+def pushable(grid: Grid, p: Point, d: Point) -> int:
+    new_p = p
+
+    l = 0
+    while True:
+        l += 1
+        c = grid[new_p]
+        if c == '#':
+            return 0
+        if c in EMPTY:
+            return l
+        new_p = padd(new_p,d)
+    
+
+def tick(grid: Grid, instruction: str, robot_p: Point) -> Point:
+    d = INSTRUCTION_MAP[instruction]
+    new_p = padd(robot_p, d)
+
+    c = grid.get(new_p)
+    
+    if c == '#':
+        return robot_p
+
+    if c in EMPTY:
+        return new_p
+
+    if c != 'O':
+        raise Exception
+
+    l = pushable(grid, new_p, d)
+    if not l:
+        return robot_p
+
+    for i in range(1, l):
+        new_p = padd(new_p,d)        
+        grid[new_p] = 'O'
+
+    new_p = padd(robot_p, d)
+    grid[new_p] = '.'
+    return padd(robot_p, d)
+
+def score(grid: Grid) -> int:
+    return sum([p[Y] * 100 + p[X] for p, v in grid.items() if v == 'O'])
+
+grid, size, instructions,robot_p = load("puzzle.txt")
+
+max_iter =  len(instructions)
+
+results = ""
+for i in range(0, max_iter):
+    robot_p = tick(grid, instructions[i], robot_p)
+
+import time
+t = time.time()
+return dump_grid(grid, size, f"Elapsed: {time.time() - t:f}\nInstruction: {instructions[max_iter-1]}\nIters: {max_iter}\nScore: {score(grid)}", extra={robot_p: "@"})
+    
+ 
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Elapsed: 0.000000
+Instruction: v
+Iters: 20000
+Score: 1441031
+##################################################
+##.#..OOO#O.OO..O..#.#OOOOOO...OOOO........OOOOOO#
+#O#O.OOOO.......O#OOOOOOO.......O........#..#....#
+#OOO..O......O.OOOO#.#OO.................#.O#.#.O#
+#.O...#........O#.#........O.#.........OO...OOO..#
+#O..#..........O#.O.....O...#O.............O.O.OO#
+#O..OO#.......OOO...#OO.....................OOO.##
+##.#...O....O..OO#.#.#.##.O............#.........#
+#O.....O....OO.#OO.........O......O.O...O.O....O##
+#O.....OO@.OOOO..OO..O...........OOO.OO........O.#
+#O......#..O#.O....O........O...O.#O..OOO......O.#
+#O...#O....O#.....O...O.OO.....#..O#....O.#...O..#
+##O..................OO...O......O#O...OO..O#.O.O#
+#OO......OOOO...OO..#O.O......O.....OO.......O...#
+#O..O.O..OOOO..OOO..#O..O...#.......O#....O..OO#.#
+#O.O#....O.O.....O.........O...#.....#.##.#....O##
+#...OO....O#.......O#O......OO..OO.#......OO#....#
+#............OO...##.#......O...O#OO...........O.#
+#..........O..O....O..O.O..OO....OOOO....OO.O..O##
+#........O....O.OO.O.....OO.O.#OOOO.O.O..OO..OO#.#
+#.O...........OO.O#O.#...O...OOO#.#OO.O......OO#.#
+#......O.....O...#O.....#O.....OOOO#O.........OOO#
+#.....#O..........#...#.....O....#..O..O..O....OO#
+#..#O..O...#..O..O#...O.#....OO.O...#.OO........O#
+#...O...##OO..OO......O#O..O.OOOOO#....O........O#
+#.............O...O.#.O.....##O..OO#O...#.O......#
+#O.......O.......O#..#O......OO...O.#....O..OO...#
+#OO...........OOOO.O......#....O......O#.O.#.#..##
+#OO..O......OO.#OO.........O...O.O.....#........O#
+#O#........OOOOO#O#.##....#.#OO................O##
+#O..O.....O#O..O.O..O#..#...O#O.......OOOO......O#
+#OOO.........OOOO...........O#O.#OOO#....#OO....O#
+#.O#......#...#OO.........O#OOOOOO.O...O#OO#..OOO#
+#.#O............#..O.......OOO##O....O.#.O.O.....#
+#......OOO#.....OO#.......#OOOOO......OO.O....O..#
+#..#...O#O.......O.....O...O.OO.....OO.O.O...#.#.#
+#.#...OO#O....#.........O........#......OO#O.O...#
+#...#.##.O...O..................O#O.....OOOO##O..#
+#O#..O##.#.........#......#..............OO......#
+#OO....O#OO......O..OO.........O......#....OO..O.#
+#O.............O.....O....OOO....OO#........#O.O.#
+#O....#..O#....OO.....O#.O#..#..............OO#O.#
+#....O..OO.O.#..O....#OOOOOOOO..................O#
+#..O...#O...O...OO.......#.#OOO..............O...#
+#.O...OO................OO#.OO#..................#
+#.##O.#O.O...O.#......O.....#OO..................#
+#.OOOO.....O....O.....#O.....OO...O...O...OOO##OO#
+#...O#...OOOOO..#O.O..O...O#.#O......OOOOOOO#..#O#
+#O......OOOOOO#OOOO.OOOOOOOOO.O.....O#OOOOOOO.OOO#
+##################################################
+#+end_example
+
+* Star 2
+
+This ONLY happens when moving up/down
+If moving ] ALSO have to move one to left
+If moving [ ALSO have to move one to right
+
+#+begin_src python :results value 
+
+
+from utils import load_s, Grid, Point, dump_grid, Size, HEIGHT, WIDTH, DIRECTIONS, padd, pmult, X, Y
+
+INSTRUCTION_MAP = {"^": DIRECTIONS["N"],
+                   ">": DIRECTIONS["E"],
+                   "v": DIRECTIONS["S"],
+                   "<": DIRECTIONS["W"]}
+
+TILES = {"#": "##",
+         "@": "..",
+         ".": "..",
+         "O": "[]"}
+
+BOXES = ('[',']')
+
+def load(filename: str) -> tuple[Grid,str]:
+    instructions = ""
+    grid = {}
+    robot_p: Point = (0,0)
+    size: Size = (0,0)
+    row = 0
+
+    for line in load_s(15, filename).split("\n"):
+        if line:
+            line = line.strip()
+            if line.startswith("#"):
+                col = 0
+                for c in line:
+                    if c == "@":
+                        robot_p = (col,size[HEIGHT])
+                    grid[(col,size[HEIGHT])] = TILES[c][0]
+                    grid[(col+1,size[HEIGHT])] = TILES[c][1]
+                    col += 2
+                size = (len(line)*2, size[HEIGHT]+1)
+            else:
+                instructions += line
+    return grid, size, instructions, robot_p
+
+EMPTY = ('.', None)
+
+def other_box_p(p: Point, c: str, ) -> Point:
+    if c == '[':
+        return padd(p,(1,0))
+
+    return padd(p,(-1,0))            
+
+def pushable_ns(grid: Grid, points: list[Point], d: Point, depth=0) -> list[tuple[Point, Point, str]]:
+    collisions = []
+    for p in points:
+        np =  padd(p,d)
+        c = grid.get(np)
+        # If any point would push into a #, not pushable
+        if c == '#':
+            return []
+        if c in BOXES:
+            collisions.append(np)
+            collisions.append(other_box_p(np,c))            
+
+    # At this point all points are pushable to the next row. If any collide, test them
+    results = [(p, padd(p,d), grid.get(p)) for p in points]
+    if collisions:
+        next_row =  pushable_ns(grid, collisions, d, depth+1)
+        if not next_row:
+            return []
+               
+        results.extend(next_row)
+            
+    return results
+
+def pushable(grid: Grid, p: Point, d: Point) -> list[tuple[Point, Point, str]]:
+    if d[X] == 0:
+        np = other_box_p(p,grid.get(p))
+        results =  pushable_ns(grid, [p, np], d)
+        return results
+    
+    new_p = p
+
+    l = []
+
+    while True:
+        c = grid[new_p]
+        if c == '#':
+            return []
+        if c in EMPTY:
+            return l
+        old_p = p
+        new_p = padd(new_p,d)
+        l.append((old_p, new_p, c))
+    
+def tick(grid: Grid, instruction: str, robot_p: Point) -> Point:
+    d = INSTRUCTION_MAP[instruction]
+    new_p = padd(robot_p, d)
+
+    c = grid.get(new_p)
+    
+    if c == '#':
+        return robot_p
+
+    if c in EMPTY:
+        return new_p
+
+    if c not in ('[',']'):
+        raise Exception
+
+    l = pushable(grid, new_p, d)
+    if not l:
+        return robot_p
+
+    seen = {}
+    for _, new_p, pc in l:
+        grid[new_p] = pc
+        seen[new_p] = True
+
+    for p, _, _ in l:
+        if not seen.get(p):
+            grid[p] = "."
+
+    return padd(robot_p, d)
+
+def score(grid: Grid) -> int:
+    return sum([p[Y] * 100 + p[X] for p, v in grid.items() if v == '['])
+
+grid, size, instructions,robot_p = load("puzzle.txt")
+
+max_iter = len(instructions)
+
+results = ""
+for i in range(0, max_iter):
+    robot_p = tick(grid, instructions[i], robot_p)
+
+import time
+t = time.time()
+return dump_grid(grid, size, f"Elapsed: {time.time() - t:f}\nInstruction: {instructions[max_iter-1]}\nIters: {max_iter}\nScore: {score(grid)}", extra={robot_p: "@"})
+    
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Elapsed: 0.000000
+Instruction: v
+Iters: 20000
+Score: 1425169
+####################################################################################################
+####..##.[].[][][]##[][][][][]..[]....##..##[]..[]..[]..[]..[][].....[][][].....[]..[]..[]..[][]..##
+##[]##[]...........[][][][][]...[]##[][]....[]..[][][].........[].[]....[]........##....##........##
+##.[][]...........[][][][][]....[]....##..##[][][][][][].......[].[]......[][][][]##..[]##..##..[]##
+##..........##.....[][]....[]...##[]##.....[]....[][][].[]##........[][][]..[]......[][]..........##
+##[]..[]##.[][]...[]......[][][]##.......[].......[]..[]##[]..............[][][]......[]..[]..[][]##
+##...[].....##..............[]..[]......##...[][].[].[][]..................[].........[]....[]..####
+####..##........................[]##..##..##[]####..[][]......................##..................##
+##[]........[][]......[]...[].##.[].[]........[]....[]................[]......[]..............[]####
+##..........[][].....@......[]..[][].........[]......[]..........[]..[].[]......[]............[]..##
+##[]...[]...[][]##.[]...##.........[].................[]........[]..##[][]......[]....[]....[]....##
+##....[]..##[].[].......##..[]..[][]...........[].............##[]....##[][]........##[]..........##
+####............[]........[].........[].............................##.[]...............##......[]##
+##[]..........[][]......................##...........................[].[]..................[]....##
+##[]......[]..................[]........##..............##....[]......[][]##........[]......[]##..##
+##[]....##.[].[]......[][].[]........[].......................##......[][]##..####..##..[]..[][]####
+##[].....[]...[]......##.............[].##[]...............[].........##...[][].....[]..##..[]....##
+##..........[]......................####[]##[].....[].......[]....##........[].....[]...[]..[]....##
+##........[]..............[].......[].......[]...................................[].........[]..####
+##.........................................[]......[]..[]...##.[][]..[].....................[]##..##
+##..................[]............[]##....##...[].[].....[][].[]##[]##[]..........[]..........##..##
+##............[]..................##.....[].....##.........[].....[][]##[].......[]...........[][]##
+##........[]##......[][]........[]..##......##.....[]..[].........##[][][]........[]..........[][]##
+##....##........[][][]##...[].....[]##[]........##[][]..................##....[]..[]..........[]..##
+##..............####.[][]..[].................##.....[]...[]......[]##..........[].[].............##
+##......[]......[][][][][][][]..........##..........[][]####......[]..##[]......##...........[]...##
+##[]....[]....[][][][][]..[][]......##[]..##.......[].......[]..[]..[]..##....[]...[].......[][]..##
+##[]....[]..[].......[].[][]..[]....[]..[]...[].[]..##......[]..[]...[].......##......##..##..[]####
+##[][]...[]........[].....[]..##[]...........[][]..[].......[].[].[][]........##...[].[]........[]##
+##..##............[]........[]..##[]##..####..[]....##..##..[][][][]......................[]....####
+##...........[]...[]..##....[][]........[]##..[]##....[][]##[]..[].........[]...[]........[][]....##
+##[][]...............[].[].[].[].......[][].......[]..[]..##[][]##....[]##......[]##.........[]...##
+##..[]##............##......##..[]...[]........[].....##..[][]..[]....[][]....[]##....##........[]##
+##..##..[].......[].............##...............[][]..[].[]####[]...[][].....##[][]..[][]........##
+##..............[]..##..............##............[]##.......[][][][][]........[][].[]..[][]......##
+##....##....[]..##....[]...........[]........[]....[].......[][][]........[]....[].[][][].##..##..##
+##[]##..[]..[][]##..........##.....[]...........[].[]........[][].##..............[]##....[]......##
+##......##..####...............[][]...[].[][]...................[]##....[].......[].[]..####[]....##
+##[]##......####..##...........[].....##........[]..##......................[]......[]............##
+##..[][]........##.[].....[]....[]..............[].......................[].##[]...[].....[]......##
+##[]....[]....[]......[].....[]................[][].................[]##........[]..[]..##........##
+##..........##......##...[]..[]...[]..........##[]..##....##..........[].[][][].......[][]..##..[]##
+##........[]............[]##[][]...[]...[]##.....[].......[].........[]...................[]......##
+##....[]......##..[]....[]..[][]..[][].....[].....##..##[][]......................................##
+##..[]..........[][]..[]....[][][]..............[]..##..[][]##.................................[].##
+##[]####[]..##....[][][]......##.........[].......[]....##[][][]..............................[][]##
+##....[]..[]......[]........[]....[]........##[]..............[]............[].......[].[]####[][]##
+##....[]..##[]....[]..[][][]....##[]..............[]..##..##[][][][]......[].[][].[][][]##....##..##
+##..........[]..[][][]......##..[][]......[]......[][][][][][][][].[].....##..[]..[][][][]..[][][]##
+####################################################################################################
+#+end_example
+
+
+
