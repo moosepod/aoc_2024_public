@@ -177,9 +177,9 @@ Score: 1441031
 
 * Star 2
 
-** This ONLY happens when moving up/down
-** If moving ] ALSO have to move one to left
-** If  moving [ ALSO have to move one to right
+- This ONLY happens when moving up/down
+- If moving ] ALSO have to move one to left
+- If moving [ ALSO have to move one to right
 
 #+begin_src python :results value 
 
