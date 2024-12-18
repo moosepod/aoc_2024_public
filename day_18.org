@@ -1,0 +1,171 @@
+* Day 18 of AOC 2024
+
+https://adventofcode.com/2024/day/18
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+from utils import load_s,Grid,Size, WIDTH, HEIGHT, dump_grid, Point, X, Y, NESW, padd
+from math import inf
+
+def setup_grid(filename: str, size: Size, iterations: int) -> tuple[Grid, Size]:
+    grid = {(x,y): "." for x in range(0,size[WIDTH]) for y in range(0,size[HEIGHT])}
+    for p in [(int(line.split(",")[0]),int(line.split(",")[1])) for line in load_s(18, filename).split("\n") if line][0:iterations]:
+        grid[p] = '#'
+
+    return grid, size
+
+def neighbors_with_costs(grid: Grid, p: Point):
+    for d in NESW:
+        np = padd(p,d)
+        if grid.get(np) == '.':
+            yield (np, 1)
+
+def find_lowest_cost(costs: dict, processed: dict):
+    node = None
+
+    for key, cost in costs.items():
+        if not processed.get(key):
+            if not node or cost < node[1]:
+                node = (key,cost)
+
+    return node
+
+def dijkstra(grid: Grid, p: Point, end_p: Point):
+    costs = {k: v for k,v in neighbors_with_costs(grid, p)}
+    processed = {}
+    parents = {}
+    node = (p,0)
+    while node:
+        node_key, node_cost = node
+        if node_key == end_p:
+            break
+        for neighbor_key, neighbor_cost in neighbors_with_costs(grid, node_key):
+            new_cost = node_cost + neighbor_cost
+            if costs.get(neighbor_key, inf) > new_cost:
+                costs[neighbor_key] = new_cost
+                parents[neighbor_key] = node_key
+        processed[node_key] = True
+        node = find_lowest_cost(costs, processed)
+
+    end_nodes = [n for n in parents.keys() if n == end_p]
+    if len(end_nodes) != 1:
+        return None
+
+    return costs[end_nodes[0]], parents, end_nodes
+
+#config = ("test.txt",(7,7), 12)
+config = ("puzzle.txt",(71,71), 1024)
+grid, size = setup_grid(config[0], config[1], config[2])
+
+end = (size[WIDTH]-1,size[HEIGHT]-1)
+cost, parents, end_nodes = dijkstra(grid, (0,0), end)
+return cost
+
+#+end_src
+
+#+RESULTS:
+: 272
+
+* Star 2
+#+begin_src python :results value
+from utils import load_s,Grid,Size, WIDTH, HEIGHT, dump_grid, Point, X, Y, NESW, padd
+from math import inf
+
+def init(filename: str, size: Size) -> tuple[Grid, Size]:
+    grid = {(x,y): "." for x in range(0,size[WIDTH]) for y in range(0,size[HEIGHT])}
+    points = [(int(line.split(",")[0]),int(line.split(",")[1])) for line in load_s(18, filename).split("\n") if line]
+
+    return grid, size, points
+
+def neighbors_with_costs(grid: Grid, p: Point):
+    for d in NESW:
+        np = padd(p,d)
+        if grid.get(np) == '.':
+            yield (np, 1)
+
+def find_lowest_cost(costs: dict, processed: dict):
+    node = None
+
+    for key, cost in costs.items():
+        if not processed.get(key):
+            if not node or cost < node[1]:
+                node = (key,cost)
+
+    return node
+
+def dijkstra(grid: Grid, p: Point, end_p: Point):
+    costs = {k: v for k,v in neighbors_with_costs(grid, p)}
+    processed = {}
+    parents = {}
+    node = (p,0)
+    while node:
+        node_key, node_cost = node
+        if node_key == end_p:
+            break
+        for neighbor_key, neighbor_cost in neighbors_with_costs(grid, node_key):
+            new_cost = node_cost + neighbor_cost
+            if costs.get(neighbor_key, inf) > new_cost:
+                costs[neighbor_key] = new_cost
+                parents[neighbor_key] = node_key
+        processed[node_key] = True
+        node = find_lowest_cost(costs, processed)
+
+    end_nodes = [n for n in parents.keys() if n == end_p]
+    if len(end_nodes) == 0:
+        # Multiple nodes aren't an issue for this puzzle
+        return None, None
+
+    path = []
+    p = end_p
+    while p:
+        path.append(p)
+        p = parents.get(p)
+
+    return costs[end_nodes[0]], path
+
+config = ("puzzle.txt",(71,71), 1024)
+
+grid, size, points = init(config[0], config[1])
+end = (size[WIDTH]-1,size[HEIGHT]-1)
+
+_, last_path = dijkstra(grid, (0,0), end)
+
+for i in range(0, len(points)):
+    grid[points[i]] = '#'
+    if points[i] in last_path:
+        cost, last_path = dijkstra(grid, (0,0), end)
+        if not cost:
+            return points[i]
+    
+return None
+
+#+end_src
+
+#+RESULTS:
+| 16 | 44 |
+
+
+
