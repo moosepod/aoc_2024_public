@@ -8,6 +8,8 @@ type Grid = dict[Point,str]
 
 type SizedGrid = tuple[Grid,Size]
 
+type Line = tuple[Point,Point]
+
 ###
 ### Constants
 ###
@@ -31,7 +33,12 @@ DIRECTIONS = {
     "N": (0,-1), 
     }
 
+# Cardinal directions and their reverse
 NESW = (DIRECTIONS["N"], DIRECTIONS["E"], DIRECTIONS["S"], DIRECTIONS["W"])
+SWNE = (DIRECTIONS["S"], DIRECTIONS["W"], DIRECTIONS["N"], DIRECTIONS["E"])
+
+# Misc constant
+LABEL_OFFSET = -2
 
 ###
 ### Loading puzzle data
@@ -114,11 +121,12 @@ def squares_to_grid(squares: list[Point], c="x") -> Grid:
 
     return grid
 
-def dump_grid(grid: Grid, size: Size, message: str, int_grid=False, extra:dict[Point,str] = None) -> str:
+def dump_grid(grid: Grid, size: Size, message: str="", int_grid=False, extra:dict[Point,str] = None, labels=False) -> str:
     s = message
-    for row in range(0,size[1]):
-        s+="\n"
-        for col in range(0,size[0]):
+    for row in range(LABEL_OFFSET if labels else 0,size[1]):
+        if s:
+            s+="\n"
+        for col in range(LABEL_OFFSET if labels else 0,size[0]):
             c = (extra or {}).get((col,row))
             if c is None:
                 c = grid.get((col,row))
@@ -130,3 +138,77 @@ def dump_grid(grid: Grid, size: Size, message: str, int_grid=False, extra:dict[P
                         c = "?"
             s+=str(c) if c is not None else '.'
     return s
+
+def init_grid(size: Size, cell_size: int, c: str=".", labels = False) -> tuple[Grid,Size]:
+    real_size = (size[WIDTH] * cell_size, size[HEIGHT] * cell_size)
+    grid = {(x,y): c for x in range(0,real_size[WIDTH]) for y in range(0, real_size[HEIGHT])}
+
+    if labels:
+        for x in range(0,size[WIDTH]):
+            grid[(x*cell_size, LABEL_OFFSET)] = x % 10
+        for y in range(0,size[HEIGHT]):
+            grid[(LABEL_OFFSET, y*cell_size)] = y % 10
+
+
+    
+    return grid, real_size
+
+def draw_point(grid: Grid, p: Point, cell_size: int, c:str = "x"):
+    grid[pmult(p,cell_size)] = c
+
+def draw_straight_line(grid: Grid, p1: Point, p2: Point, cell_size: int):
+    if p1[X] != p2[X] and p1[Y] != p2[Y]:
+        raise Exception("Only straight lines supported")        
+    
+    if p1[Y] < p2[Y]:
+        for y in range(p1[Y]*cell_size, p2[Y]*cell_size):
+            grid[(p1[X]*cell_size, y)] = "|"
+    elif p1[Y] < p2[Y]:
+        for y in range(p2[Y]*cell_size, p1[Y]*cell_size):
+            grid[(p1[X]*cell_size, y)] = "|"
+    elif p1[X] < p2[X]:
+        for x in range(p1[X]*cell_size, p2[X]*cell_size):
+            grid[(x,p1[Y]*cell_size)] = "-"
+    elif p2[X] < p1[X]:
+        for x in range(p2[X]*cell_size, p1[X]*cell_size):
+            grid[(x,p1[Y]*cell_size)] = "-"
+
+
+def draw_lines(grid: Grid, cell_size: int, lines: list[Line]):
+    for p1, p2 in lines:
+        draw_straight_line(grid, p1, p2, cell_size)        
+
+DIRECTION_ARROWS = {(1,0): ">",
+                    (-1,0): "<",
+                    (0,1): "v",
+                    (0,-1): "^"}
+
+def line_direction(line: Line) -> Point:
+    p1,p2 = line
+    if p1[X] != p2[X] and p1[Y] != p2[Y]:
+        raise Exception("Only straight lines supported")        
+    if p1[X] < p2[X]:
+        return (1,0)
+    if p1[X] > p2[X]:
+        return (-1,0)
+    if p1[Y] < p2[Y]:
+        return (0, 1)
+
+    return (0,-1)
+    
+def draw_arrows(grid: Grid, cell_size: int, lines: list[Line]):
+    for p1, p2 in lines:
+        draw_straight_line(grid, p1, p2, cell_size)
+    for p1, p2 in lines:
+        #  Draw @ where lines clash
+        if grid.get(pmult(p2,cell_size)) in ('>','<','^','v'):
+            c = "@"
+        else:
+            c = DIRECTION_ARROWS[line_direction((p1,p2))]
+        draw_point(grid, p2, cell_size, c)
+
+
+def draw_verticies(grid: Grid, cell_size: int, region: list[Point]):
+    for cell in region:
+        for p in square_verticies(cell):
+            draw_point(grid, p, cell_size)

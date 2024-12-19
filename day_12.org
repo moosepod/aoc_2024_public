@@ -1,0 +1,384 @@
+* Day 12 of AOC 2024
+
+https://adventofcode.com/2024/day/12
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/python_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/python_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+
+from utils import load_grid, Grid, Point, NESW,padd, WIDTH, HEIGHT, X, Y,   Line
+
+def find_region(grid: Grid, p: Point, t: str, visited: None) -> list:
+    if grid.get(p) != t or visited.get(p):
+        return []
+
+    visited[p] = True
+
+    r = [p]
+    
+    for d in NESW:
+        r.extend(find_region(grid, padd(p,d), t, visited))
+
+    return r
+
+def extract_regions(grid: Grid) -> list[Point]:
+    placed = {}
+    regions = []
+
+    for y in range(0, size[HEIGHT]):
+        for x in range(0, size[WIDTH]):
+            p = (x,y)
+            if not placed.get(p):
+                region = find_region(grid, p, grid[p], {})
+                placed.update({x: True for x in region})
+                regions.append(region)
+
+    return regions
+
+def convert_to_edges(cells: list[Point]) -> list[Line]:
+    # Points must be sorted by y, then x for the rest of this to work    
+    edges = []
+    for ul in sorted(cells,key=lambda n: (n[1],n[0])):
+        ur = padd(ul, (1,0))
+        lr = padd(ul, (1,1))        
+        ll = padd(ul, (0,1))
+        
+        edges.append((ul, ur))
+        edges.append((ul, ll))        
+        edges.append((ur, lr))
+        edges.append((ll, lr))        
+
+    return edges
+
+def remove_overlapping(edges: list[Line]) -> list[Line]:
+    cleaned = {}
+
+    for edge in edges:
+        if not cleaned.get(edge):
+            cleaned[edge] = 0
+        cleaned[edge] += 1
+
+    return [e for e,c in cleaned.items() if c == 1]
+
+def calculate_price(region: list[Point]) -> int:
+    edges = remove_overlapping(convert_to_edges(region))
+    return len(region) * len(edges)
+
+grid,size = load_grid(12, "puzzle.txt")
+
+regions = extract_regions(grid)
+
+import time
+t = time.time()
+r = sum([calculate_price(region) for region in regions])
+return r, f"{time.time() - t:f}"
+
+#+end_src
+
+#+RESULTS:
+| 1387004 | 0.020019 |
+
+* Star 2
+
+#+begin_src python :results value
+
+from utils import load_grid, Grid, Point, NESW,padd, WIDTH, HEIGHT, X, Y,   Line, dot, pmult
+
+def find_region(grid: Grid, p: Point, t: str, visited: None) -> list:
+    if grid.get(p) != t or visited.get(p):
+        return []
+
+    visited[p] = True
+
+    r = [p]
+    
+    for d in NESW:
+        r.extend(find_region(grid, padd(p,d), t, visited))
+
+    return r
+
+def extract_regions(grid: Grid) -> list[Point]:
+    placed = {}
+    regions = []
+
+    for y in range(0, size[HEIGHT]):
+        for x in range(0, size[WIDTH]):
+            p = (x,y)
+            if not placed.get(p):
+                region = find_region(grid, p, grid[p], {})
+                placed.update({x: True for x in region})
+                regions.append(region)
+
+    return regions
+
+def convert_to_edges(cells: list[Point]) -> list[Line]:
+    # Points must be sorted by y, then x for the rest of this to work    
+    edges = []
+    for ul in sorted(cells,key=lambda n: (n[1],n[0])):
+        ur = padd(ul, (1,0))
+        lr = padd(ul, (1,1))        
+        ll = padd(ul, (0,1))
+        
+        edges.append((ul, ur))
+        edges.append((ul, ll))        
+        edges.append((ur, lr))
+        edges.append((ll, lr))        
+
+    return edges
+
+def remove_overlapping(edges: list[Line]) -> list[Line]:
+    cleaned = {}
+
+    for edge in edges:
+        if not cleaned.get(edge):
+            cleaned[edge] = 0
+        cleaned[edge] += 1
+
+    return [e for e,c in cleaned.items() if c == 1]
+
+def calculate_price(region: list[Point]) -> int:
+    edges = remove_overlapping(convert_to_edges(region))
+    return len(region) * len(edges)
+
+def count_sides(edges: list[Line]) -> int:
+    sides = 0
+
+    counts = {}
+    for edge in edges:
+        for p in edge:
+            if not counts.get(p):
+                counts[p] = 0
+            counts[p] += 1
+
+    for i in range(0, len(edges)):
+        edge = edges[i]
+        if edge:
+            sides += 1
+            for j in range(0, len(edges)):
+                if i != j:
+                    edge2 = edges[j]
+                    if edge2:
+                        if (edge[1] == edge2[0] and # Current edge connects to this edge
+                            dot(padd(edge[0],pmult(edge[1], -1)),padd(edge2[0], pmult(edge2[1],-1))) # Directions are parallel
+                            and counts.get(edge2[0]) < 3
+                            ):
+                            edge = (edge[0], edge2[1])
+                            edges[i] = edge
+                            edges[j] = None
+
+    
+    return sides
+
+def calculate_price(region: list[Point]) -> int:
+    edges = remove_overlapping(convert_to_edges(region))
+    return len(region) * count_sides(edges)
+    
+grid,size = load_grid(12, "puzzle.txt")
+
+regions = extract_regions(grid)
+
+import time
+t = time.time()
+r = sum([calculate_price(region) for region in regions])
+return r, f"{time.time() - t:f}"
+
+#+end_src
+
+#+RESULTS:
+| 844198 | 0.047208 |
+
+* Testing
+
+#+begin_src python :results value
+
+from utils import load_grid, Grid, Point, NESW,padd, WIDTH, HEIGHT, X, Y,   Line, dot, pmult, init_grid, dump_grid, draw_arrows
+
+def find_region(grid: Grid, p: Point, t: str, visited: None) -> list:
+    if grid.get(p) != t or visited.get(p):
+        return []
+
+    visited[p] = True
+
+    r = [p]
+    
+    for d in NESW:
+        r.extend(find_region(grid, padd(p,d), t, visited))
+
+    return r
+
+def extract_regions(grid: Grid) -> list[Point]:
+    placed = {}
+    regions = []
+
+    for y in range(0, size[HEIGHT]):
+        for x in range(0, size[WIDTH]):
+            p = (x,y)
+            if not placed.get(p):
+                region = find_region(grid, p, grid[p], {})
+                placed.update({x: True for x in region})
+                regions.append(region)
+
+    return regions
+
+def convert_to_edges(cells: list[Point]) -> list[Line]:
+    # Points must be sorted by y, then x for the rest of this to work    
+    edges = []
+    for ul in sorted(cells,key=lambda n: (n[1],n[0])):
+        ur = padd(ul, (1,0))
+        lr = padd(ul, (1,1))        
+        ll = padd(ul, (0,1))
+        
+        edges.append((ul, ur))
+        edges.append((ul, ll))        
+        edges.append((ur, lr))
+        edges.append((ll, lr))        
+
+    return edges
+
+def remove_overlapping(edges: list[Line]) -> list[Line]:
+    cleaned = {}
+
+    for edge in edges:
+        if not cleaned.get(edge):
+            cleaned[edge] = 0
+        cleaned[edge] += 1
+
+    return [e for e,c in cleaned.items() if c == 1]
+
+def calculate_price(region: list[Point]) -> int:
+    edges = remove_overlapping(convert_to_edges(region))
+    return len(region) * len(edges)
+
+def count_sides(edges: list[Line]) -> int:
+    sides = 0
+
+    counts = {}
+    for edge in edges:
+        for p in edge:
+            if not counts.get(p):
+                counts[p] = 0
+            counts[p] += 1
+
+    for i in range(0, len(edges)):
+        edge = edges[i]
+        if edge:
+            sides += 1
+            for j in range(0, len(edges)):
+                if i != j:
+                    edge2 = edges[j]
+                    if edge2:
+                        if (edge[1] == edge2[0] and # Current edge connects to this edge
+                            dot(padd(edge[0],pmult(edge[1], -1)),padd(edge2[0], pmult(edge2[1],-1))) # Directions are parallel
+                            and counts.get(edge2[0]) < 3
+                            ):
+                            edge = (edge[0], edge2[1])
+                            edges[i] = edge
+                            edges[j] = None
+
+    
+    return sides
+
+# RIGHT-- expect 4, 4
+region = [(0,0)]
+
+# RIGHT-- expect 6, 4
+region = [(0,0),(1,0)]
+
+# RIGHT-- expect 6, 4
+region = [(0,0),(0,1)]
+
+# RIGHT-- expect 8, 4
+region = [(0,0),(0,1),(1,0),(1,1)]
+
+# RIGHT -- expect 8, 6
+region = [(0,0),(1,0),(0,1)]
+
+# RIGHT-- expect 8, 4
+region = [(0,0),(0,1),(0,2)]
+
+# RIGHT-- expect 8, 4
+region = [(0,0),(1,0),(2,0)]
+
+# RIGHT -- expect 10,6
+region = [(0,0),(1,0),(0,1),(0,2)]
+
+# RIGHT -- expect 12, 8 (perim wrong too?)
+region = [(0,0),(1,0),(0,1),(0,2),(1,2)]
+
+# RIGHT -- expect 8 edges, 8 sides
+region = [(0,0),(1,1)]
+
+# RIGHT -- expect 8 edges, 4 sides
+region = [(0,2),(1,2),(0,3),(1,3)]
+
+# RIGHT -- expect 16 edges, 8 sides
+region = [(0,2),(1,2),(0,3),(1,3),(2,0),(3,0),(2,1),(3,1)]
+
+# RIGHT -- expect 8 edges, 4 sides
+region = [(1,3),(2,3),(2,4),(1,4)]
+
+# RIGHT -- expect 12 edges, 4 sides
+region = [(0,0),(1,0),(2,0),(0,1),(1,1),(2,1),(0,2),(1,2),(2,2)]
+
+# RIGHT -- expect 16 edges, 8 sides
+region = [(0,0),(1,0),(2,0),(0,1),(2,1),(0,2),(1,2),(2,2)]
+
+cell_size = 3
+grid, size = init_grid((6,6), cell_size, labels=True)
+
+lines = convert_to_edges(region)
+lines = remove_overlapping(lines)
+draw_arrows(grid, cell_size, lines)
+
+result = len(lines), count_sides(lines)
+
+return dump_grid(grid,size, labels=True, message=f"{result}")
+
+#+end_src
+
+#+RESULTS:
+#+begin_example
+(16, 8)
+..0..1..2..3..4..5..
+....................
+0.|-->-->-->........
+..|........|........
+..|........|........
+1.v..|-->..v........
+..|..|..|..|........
+..|..|..|..|........
+2.v..v--@..v........
+..|........|........
+..|........|........
+3.v-->-->--@........
+....................
+....................
+4...................
+....................
+....................
+5...................
+....................
+....................
+#+end_example
