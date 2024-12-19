@@ -1,0 +1,110 @@
+* Day 19 of AOC 2024
+
+https://adventofcode.com/2024/day/19
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1 
+
+
+#+begin_src python :results value
+from utils import load_s
+
+def load(filename: str) -> tuple[list[str],list[str]]:
+    patterns, designs = [],[]
+    for line in [line.strip() for line in load_s(19, filename).split("\n")]:
+        if line:
+            if "," in line:
+                patterns = line.split(", ")
+            else:
+                designs.append(line)
+
+    return patterns, designs
+
+patterns, designs = load("puzzle.txt")
+
+def possible(design: str, patterns: list[str]) -> int:
+    if len(design) == 0:
+        return 1
+    
+    for pattern in patterns:
+        if design.startswith(pattern):
+            if possible(design[len(pattern):], patterns):
+                return 1
+            
+    return 0
+
+return sum([possible(design, patterns) for design in designs])
+#return len([(design, possible(design, patterns)) for design in designs]
+          
+
+#+end_src
+
+#+RESULTS:
+: 213
+
+* Star 2 
+
+
+#+begin_src python :results value
+from utils import load_s
+
+def load(filename: str) -> tuple[list[str],list[str]]:
+    patterns, designs = [],[]
+    for line in [line.strip() for line in load_s(19, filename).split("\n")]:
+        if line:
+            if "," in line:
+                patterns = line.split(", ")
+            else:
+                designs.append(line)
+
+    return patterns, designs
+
+patterns, designs = load("puzzle.txt")
+
+def possible(design: str, patterns: list[str], cache: dict) -> int:
+    if cache.get(design):
+        return cache[design]
+    
+    if len(design) == 0:
+        return 1
+
+    s = 0
+    
+    for pattern in patterns:
+        if design.startswith(pattern):
+            d = design[len(pattern):]
+            n = possible(d, patterns, cache)
+            cache[d] = n
+            s+=n
+            
+    return s
+
+return sum([possible(design, patterns, {}) for design in designs])
+#return [(design, possible(design, patterns, {})) for design in designs]
+          
+
+#+end_src
+
+#+RESULTS:
+: 1016700771200474
