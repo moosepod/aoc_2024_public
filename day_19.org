@@ -55,8 +55,6 @@ def possible(design: str, patterns: list[str]) -> int:
     return 0
 
 return sum([possible(design, patterns) for design in designs])
-#return len([(design, possible(design, patterns)) for design in designs]
-          
 
 #+end_src
 
@@ -101,8 +99,6 @@ def possible(design: str, patterns: list[str], cache: dict) -> int:
     return s
 
 return sum([possible(design, patterns, {}) for design in designs])
-#return [(design, possible(design, patterns, {})) for design in designs]
-          
 
 #+end_src
 
