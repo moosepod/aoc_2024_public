@@ -1,0 +1,222 @@
+* Day 16 of AOC 2024
+
+https://adventofcode.com/2024/day/16
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+from utils import Grid,Point, dump_grid, dijkstra_lazy, NESW, padd, load_grid_with_start
+import time
+from math import inf
+
+BOUNDARY = (None,"#")
+
+type Node = tuple[Point,int]
+
+def neighbors_f(grid: Grid):
+    """ The neighbors for a node, n, are all based on a move
+        in the appropriate direction, if it is passable """
+    def neighbors(n:Node):
+        for i in range(0,4):
+            np = padd(n[0], NESW[i])
+            if grid.get(np) not in BOUNDARY:
+                yield (np,i)
+
+    return neighbors
+
+def weight_f(a: Node, b: Node):
+    """ The weight from node a to node b is entirely dependent on the need to turn """
+    # Cost is zero to go nowhere
+    if a[0] == b[0] and a[1] == b[1]:
+        return 0
+
+    # Just move forward
+    if a[1] == b[1]:
+        return 1
+
+    # Turn 180 degrees + move
+    if abs(a[1] - b[1]) == 2:
+        return 2001
+
+    # Everything left is 90 degrees + move
+    return 1001
+
+def draw_path(grid: Grid, from_p: Point, to_p: Point, distances: list):
+    if grid.get(from_p) == "o":
+        return
+    
+    grid[from_p] = "o"
+
+    if from_p == to_p:
+        return
+
+    neighbors = []
+
+    for np, c in neighbors_f(grid)((from_p,1)):
+        for k,v in distances.items():
+            if k[0] == np:
+                #if np != (5,8):
+                neighbors.append((k[0],v))
+
+    neighbors.sort(key=lambda x: x[1])
+    min_c = neighbors[0][1]
+
+    for p, c in neighbors:
+        if c == min_c:
+            draw_path(grid, p, to_p, distances)
+
+
+grid, size, start_p, end_p = load_grid_with_start(16, "puzzle.txt")
+
+import time
+t = time.time()
+
+distances = dijkstra_lazy((start_p, 1), # start facing east
+                               neighbors_f=neighbors_f(grid),
+                               weight_f=weight_f,
+)
+distance =  min([v for p,v in distances.items() if p[0] == end_p])
+ 
+
+return distance, time.time() - t
+#+end_src
+
+#+RESULTS:
+| 130536 | 7.659569978713989 |
+
+* Star 2
+
+Slightly lazy -- just use a count of the grid items themselves to count the path lengths!
+
+#+begin_src python :results value
+from utils import Grid,Point, dump_grid, dijkstra_lazy, NESW, padd, load_grid_with_start
+import time
+from math import inf
+
+BOUNDARY = (None,"#")
+
+type Node = tuple[Point,int]
+
+def neighbors_f(grid: Grid):
+    """ The neighbors for a node, n, are all based on a move
+        in the appropriate direction, if it is passable """
+    def neighbors(n:Node):
+        for i in range(0,4):
+            np = padd(n[0], NESW[i])
+            if grid.get(np) not in BOUNDARY:
+                yield (np,i)
+
+    return neighbors
+
+def weight_f(a: Node, b: Node):
+    """ The weight from node a to node b is entirely dependent on the need to turn """
+    # Cost is zero to go nowhere
+    if a[0] == b[0] and a[1] == b[1]:
+        return 0
+
+    # Just move forward
+    if a[1] == b[1]:
+        return 1
+
+    # Turn 180 degrees + move
+    if abs(a[1] - b[1]) == 2:
+        return 2001
+
+    # Everything left is 90 degrees + move
+    return 1001
+
+def draw_path(grid: Grid, from_p: Point, to_p: Point, distances: list):
+    if grid.get(from_p) == "o":
+        return
+    
+    grid[from_p] = "o"
+
+    if from_p == to_p:
+        return
+
+    neighbors = []
+
+    for np, c in neighbors_f(grid)((from_p,1)):
+        for k,v in distances.items():
+            if k[0] == np:
+                #if np != (5,8):
+                neighbors.append((k[0],v))
+
+    neighbors.sort(key=lambda x: x[1])
+    min_c = neighbors[0][1]
+
+    for p, c in neighbors:
+        if c == min_c:
+            draw_path(grid, p, to_p, distances)
+
+
+REVERSE_DIRECTIONS = {
+    0: ((2,1),(1,1001),(3,1001)),
+    1: ((3,1),(0,1001),(2,1001)),
+    2: ((0,1),(1,1001),(3,1001)),
+    3: ((1,1),(2,1001),(0,1001)),
+}
+
+def find_previous_nodes(grid: Grid, n: Node, distances: dict):
+    p, d = n
+    cost = distances[n]
+
+    neighbors = []
+
+    # Adjascent node in each direction could be straight or have a turn
+    for i in range(0,4):
+        np = padd(p, NESW[i])
+        if grid.get(np) not in BOUNDARY:
+            for rd,cost_delta in REVERSE_DIRECTIONS[i]:
+                if distances.get((np,rd)):
+                    neighbors.append(((np, rd), cost-cost_delta))
+
+    return neighbors
+
+def draw_path_backwards(grid: Grid, n: Node, distances: dict,):
+    grid[n[0]] = "o"
+    for node, cost in find_previous_nodes(grid, n, distances):
+        if distances.get(node) == cost:        
+            draw_path_backwards(grid, node, distances)
+
+grid, size, start_p, end_p = load_grid_with_start(16, "puzzle.txt")
+
+import time
+t = time.time()
+
+t = time.time()
+distances = dijkstra_lazy((start_p, 1), # start facing east
+                               neighbors_f=neighbors_f(grid),
+                               weight_f=weight_f,
+)
+distance =  min([v for p,v in distances.items() if p[0] == end_p])
+
+draw_path_backwards(grid, (end_p,1), distances)
+return distance, len([c for c in grid.values() if c == 'o'])+1, time.time() - t
+
+#+end_src
+
+#+RESULTS:
+| 130536 | 1024 | 7.779001235961914 |

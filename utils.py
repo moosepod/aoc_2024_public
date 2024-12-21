@@ -1,3 +1,5 @@
+from math import inf
+
 type Point = tuple[int,int]
 type PointVector = tuple[Point,Point]
 type Size = tuple[int,int]
@@ -139,6 +141,18 @@ def dump_grid(grid: Grid, size: Size, message: str="", int_grid=False, extra:dic
             s+=str(c) if c is not None else '.'
     return s
 
+def load_grid_with_start(day: int, filename: str,start_c='S',end_c='E', empty_c=".") -> tuple[Grid,Size,Point,Point]:
+    """ Load a grid, assuming start/end points and erasing them on the grid itself """
+    grid, size = load_grid(day, filename)
+
+    start_p = [p for p,v in grid.items() if v == start_c][0]
+    end_p = [p for p,v in grid.items() if v == end_c][0]
+
+    grid[start_p] = "."
+    grid[end_p] = "."
+
+    return grid,size,start_p, end_p
+
 def init_grid(size: Size, cell_size: int, c: str=".", labels = False) -> tuple[Grid,Size]:
     real_size = (size[WIDTH] * cell_size, size[HEIGHT] * cell_size)
     grid = {(x,y): c for x in range(0,real_size[WIDTH]) for y in range(0, real_size[HEIGHT])}
@@ -212,3 +226,79 @@ def draw_verticies(grid: Grid, cell_size: int, region: list[Point]):
     for cell in region:
         for p in square_verticies(cell):
             draw_point(grid, p, cell_size)
+
+###
+### Graphs
+###
+def find_lowest_cost(unvisited: set, distances: dict) -> Point:
+    min_cost = inf
+    lowest_p = None
+    for p in list(unvisited):
+        if distances[p] < min_cost:
+            min_cost = distances[p]
+            lowest_p = p
+
+    return lowest_p
+            
+def dijkstra(start_node, unvisited_f, neighbors_f, weight_f):
+    """ Non-lazy version of a generic dijkstra shortest path.
+
+        start_node should be the node (in unvisited_f) to start at.
+        unvisited_f() should return all nodes
+        neighbors_f(p) should return all neighbors for the node p
+        weight_f(a,b) should return the weight when moving from node a->b
+
+        returns a dictionary of distances keyed by node. """
+        
+    unvisited = set(unvisited_f())    
+    distances = {p: inf for p in list(unvisited)}
+    distances[start_node] = 0
+
+    p = find_lowest_cost(unvisited, distances)
+    while p:
+        for n in neighbors_f(p):
+            if n in unvisited:
+                distances[n] = min(distances[p]+weight_f(p,n), distances[n])
+        unvisited.remove(p)
+        p = find_lowest_cost(unvisited, distances)
+
+    return distances
+
+def find_lowest_cost_lazy(distances: dict, visited: set) -> Point:
+    min_cost = inf
+    lowest_p = None
+    for p, cost in distances.items():
+        if p not in visited:
+            if cost < min_cost:
+                min_cost = cost
+                lowest_p = p
+
+    return lowest_p
+
+def dijkstra_lazy(start_node, neighbors_f, weight_f, target_f=None):
+    """ Non-lazy version of a generic dijkstra shortest path.
+
+        start_node should be the node (in unvisited_f) to start at.
+        neighbors_f(p) should return all neighbors for the node p
+        weight_f(a,b) should return the weight when moving from node a->b
+
+        if target_f is true, will break out of search if target_f(n) returns true
+
+        returns a dictionary of distances keyed by node. """
+
+    visited = set()
+    distances = {p: inf for p in neighbors_f(start_node)}
+    distances[start_node] = 0
+
+    p = find_lowest_cost_lazy(distances, visited)
+    while p:
+        if target_f and target_f(p):
+            break
+        for n in neighbors_f(p):
+            if n not in visited:
+                distances[n] = min(distances.get(p,inf)+weight_f(p,n), distances.get(n,inf))
+        visited.add(p)
+        p = find_lowest_cost_lazy(distances, visited)
+
+
+    return distances
