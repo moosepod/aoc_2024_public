@@ -203,9 +203,6 @@ def draw_path_backwards(grid: Grid, n: Node, distances: dict,):
 
 grid, size, start_p, end_p = load_grid_with_start(16, "puzzle.txt")
 
-import time
-t = time.time()
-
 t = time.time()
 distances = dijkstra_lazy((start_p, 1), # start facing east
                                neighbors_f=neighbors_f(grid),
