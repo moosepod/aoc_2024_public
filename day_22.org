@@ -1,0 +1,138 @@
+* Day 22 of AOC 2024
+
+https://adventofcode.com/2024/day/22
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+from utils import load_s
+
+filename = "puzzle.txt"
+secrets = [int(line) for line in load_s(22,filename).split("\n") if line]
+
+def mix(secret: int, n: int) -> int:
+    return secret ^ n
+
+def prune(secret: int) -> int:
+    return secret % 16777216
+
+def calc_secret(secret: int) -> int:
+    secret = prune(mix(secret, secret * 64))
+    secret = prune(mix(secret, int(secret / 32)))
+    return prune( mix(secret, secret*2048))
+
+iterations = 2000
+for i in range(0,iterations):
+    for s in range(0,len(secrets)):
+        secrets[s] = calc_secret(secrets[s])
+
+return sum(secrets)
+
+#+end_src
+
+#+RESULTS:
+: 14180628689
+
+* Star 2
+#+begin_src python :results value
+
+import time
+from utils import load_s
+
+filename, iterations = "test2.txt", 10
+filename, iterations = "test.txt", 2000
+filename, iterations = "test3.txt", 2000
+filename, iterations = "puzzle.txt", 2000
+
+secrets = [int(line) for line in load_s(22,filename).split("\n") if line]
+
+def mix(secret: int, n: int) -> int:
+    return secret ^ n
+
+def prune(secret: int) -> int:
+    return secret % 16777216
+
+def calc_secret(secret: int) -> int:
+    secret = prune(mix(secret, secret * 64))
+    secret = prune(mix(secret, int(secret / 32)))
+    return prune( mix(secret, secret*2048))
+
+def cost(secret: int) -> int:
+    return int(str(secret)[-1])
+
+t = time.time()
+
+def calculate_costs(secrets: list) -> tuple[int, int]:
+    costs = []
+
+    for s in range(0,len(secrets)):
+        costs.append([])
+        for i in range(0,iterations):
+            costs[s].append((0, None))
+
+    for s in range(0,len(secrets)):
+        secret = secrets[s]
+        for i in range(0,iterations):
+            c = cost(secret)
+            if i == 0:
+                costs[s][i] = (c, None)
+            else:
+                last_cost = (costs[s][i-1][0] or 0)
+                costs[s][i] = (c, c - last_cost)
+            secret = calc_secret(secret)
+
+    return costs
+
+costs = calculate_costs(secrets)
+
+unique_sequences = {}
+for c in range(0,len(costs)):
+    secret = costs[c]
+    for i in range(1,len(secret)-4):
+        k = (secret[i][1],secret[i+1][1],secret[i+2][1],secret[i+3][1])
+        if not unique_sequences.get(k):
+            unique_sequences[k] = [None] * len(costs)
+        if not unique_sequences[k][c]:
+            unique_sequences[k][c] = secret[i+3][0]
+
+m = 0
+best = None
+for seq, costs in unique_sequences.items():
+    v = sum([x or 0 for x in costs])
+    if v > m:
+        m = v
+        best = seq
+    
+return best,m, time.time() - t
+
+#+end_src
+
+#+RESULTS:
+| (0 0 -1 2) | 1690 | 4.085726022720337 |
+
+
+
+
+
