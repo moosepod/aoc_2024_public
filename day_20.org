@@ -1,0 +1,133 @@
+* Day 20 of AOC 2024
+
+https://adventofcode.com/2024/day/20
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+* Star 1 and 2
+
+Insight:
+- Only need to look along the best path
+- The only valid post-cheat points are non-wall and thus already in the distance dict. So can just check all those 
+
+#+begin_src python :results value
+
+from utils import Grid,Point, dump_grid, dijkstra_lazy, NESW, padd, load_grid_with_start, init_grid, X, Y, Size
+import time
+from math import inf
+from collections import deque
+
+BOUNDARY = (None,"#")
+
+def neighbors(fgrid, n):
+    for i in range(0,4):
+        np = padd(n, NESW[i])
+        if fgrid.get(np) not in BOUNDARY:
+            yield np
+
+def weight_f(a: Point, b: Point):
+    return 1
+
+def adjascent(a: Point, b: Point):
+    for d in NESW:
+        if padd(a,d) == b:
+            return True
+
+    return False
+
+def get_path(fgrid: Grid, from_p: Point, to_p: Point, distances: dict) -> list[Point]:
+    path = [from_p]
+    while path[-1] != to_p:
+        m = min([distances[p] for p in neighbors(fgrid, path[-1])])
+        path.append([p for p,v in distances.items() if v == m and adjascent(p,path[-1])][0])
+
+    return path
+        
+def manhattan_distance(p1: Point, p2: Point) -> int:
+    return abs(p1[X]-p2[X]) + abs(p1[Y] - p2[Y])
+
+def find_cheats(grid: Grid, start_p: Point, end_p: Point, threshold: int, cheat_length=2) -> dict[tuple, int]:
+    distances = dijkstra_lazy(start_p,
+                              neighbors_f=lambda p: neighbors(grid,p),
+                              weight_f=lambda a,b: 1,
+                              )
+
+    path = list(reversed(get_path(grid,end_p, start_p, distances )))
+    path_idx = {p: i for i,p in enumerate(path)}
+    cheats = {}
+
+    for i, p in enumerate(path):
+        for x in range(p[X]-cheat_length, p[X]+cheat_length+1):
+            for y in range(p[Y]-cheat_length, p[Y]+cheat_length+1):
+                np = (x,y)
+                if grid.get(np) not in BOUNDARY:
+                    md = manhattan_distance(p, np)
+                    if md <= cheat_length:
+                        d1 = distances[p]
+                        d2 = distances[np]
+                        if d2 > d1:
+                            savings = d2 - d1 - md
+                            k = (p,np)
+                        else:
+                            savings = d1 - d2 - md
+                            k = (np, p)                            
+                        if savings >= threshold:
+                            cheats[k] = savings
+
+    return cheats                                
+
+def summarize_cheats(cheats: dict) -> str:
+    cost_summary = {}
+    for cost in cheats.values():
+        if  cost > 0:
+            cost_summary[cost] = cost_summary.get(cost,0) + 1
+
+    result = ""
+    for cost,count in sorted(cost_summary.items(), key=lambda x: x[0]):
+        are = "are" if count > 1 else "is"
+        s = "s" if count > 1 else ""
+        s2 = f"" if count > 1 else "s"
+        count = count if count != 1 else "one"
+        result += f"- There {are} {count} cheat{s} that save{s2} {cost} picosecond{s}.\n"
+
+    return result
+
+result = ""
+
+#filename, threshold,cheat_length = "test.txt",0,2
+filename, threshold,cheat_length = "puzzle.txt",100,2
+grid, size, start_p, end_p = load_grid_with_start(20, filename)
+
+t = time.time()
+result += f"Star 1: {len(find_cheats(grid, start_p, end_p, threshold, cheat_length=cheat_length))} in {time.time() - t:.2f}s\n"
+
+t = time.time()
+grid, size, start_p, end_p = load_grid_with_start(20, filename)
+filename, threshold,cheat_length = "puzzle.txt",100,20
+result += f"Star 2: {len(find_cheats(grid, start_p, end_p, threshold, cheat_length=cheat_length))} in {time.time() - t:.2f}s\n"
+
+return result
+
+#+end_src
+
+#+RESULTS:
+: Star 1: 1358 in 2.29s
+: Star 2: 1005856 in 4.68s
