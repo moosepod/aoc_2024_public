@@ -1,0 +1,164 @@
+* Day 13 of AOC 2024
+
+https://adventofcode.com/2024/day/13
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1 
+
+Just solved it as a simulatenous equation on paper, then replicated it here
+
+#+begin_src python :results value
+from utils import Point, X, Y
+
+from utils import load_s, Point, padd,pmult
+import re
+pre = re.compile(r"X[+=](\d+), Y[+=](\d+)")
+
+def extract_point(s: str) -> Point:
+    m = pre.search(s)
+    return int(m.group(1)), int(m.group(2))
+
+def calc_a(xa,xb,xc,ya,yb,yc) -> int:
+    return ((xc*yb) - (xb*yc))/((yb*xa)-(xb*ya))
+
+def calc_b(a, ya,yb,yc) -> int:
+    return (yc - (ya * a))/yb
+
+def tokens(a: Point, b: Point, c: Point) -> int:
+    A = calc_a(a[X], b[X], c[X], a[Y],b[Y],c[Y])
+    B = calc_b(A, a[Y],b[Y],c[Y])
+
+    tokens = A*3 + B
+    if int(tokens) != tokens:
+        return 0
+    
+    return tokens
+
+lines = load_s(13,"input.txt").split("\n")
+
+machines = [{"A": extract_point(lines[i]), "B": extract_point(lines[i+1]), "P": extract_point(lines[i+2])} for i in range(0, len(lines), 4)]
+
+results = [tokens(m["A"],m["B"],m["P"]) for m in machines]
+return sum(results)
+#+end_src
+
+#+RESULTS:
+: 26810.0
+
+
+* Star 2
+
+#+begin_src python :results value
+from utils import Point, X, Y
+
+from utils import load_s, Point, padd,pmult
+import re
+pre = re.compile(r"X[+=](\d+), Y[+=](\d+)")
+
+def extract_point(s: str) -> Point:
+    m = pre.search(s)
+    return int(m.group(1)), int(m.group(2))
+
+def calc_a(xa,xb,xc,ya,yb,yc) -> int:
+    return ((xc*yb) - (xb*yc))/((yb*xa)-(xb*ya))
+
+def calc_b(a, ya,yb,yc) -> int:
+    return (yc - (ya * a))/yb
+
+def tokens(a: Point, b: Point, c: Point) -> int:
+    A = calc_a(a[X], b[X], c[X], a[Y],b[Y],c[Y])
+    B = calc_b(A, a[Y],b[Y],c[Y])
+
+    if not A.is_integer() or not B.is_integer():
+        return None
+    
+    return (A,B)
+
+lines = load_s(13,"input.txt").split("\n")
+
+machines = [{"A": extract_point(lines[i]), "B": extract_point(lines[i+1]), "P": extract_point(lines[i+2])} for i in range(0, len(lines), 4)]
+
+lines = load_s(13,"input.txt").split("\n")
+offset = (10000000000000,10000000000000)
+machines = [{"A": extract_point(lines[i]), "B": extract_point(lines[i+1]), "P": extract_point(lines[i+2])} for i in range(0, len(lines), 4)]
+
+total = 0
+for result in [tokens(m["A"],m["B"],padd(m["P"], offset)) for m in machines]:
+    if result:
+        total += result[0] * 3 + result[1]
+
+return total        
+#+end_src
+
+#+RESULTS:
+: 108713182988244.0
+
+* Star 2 - variant
+
+The star 2 calcuation had an issue originally. So I solved it using ths simpy library to prove the concept. Then I went back and fix a bug in the solve that was causing the issue.
+
+#+begin_src python :results value
+
+
+
+from utils import Point, padd, pmult,X,Y, load_s
+import re
+pre = re.compile(r"X[+=](\d+), Y[+=](\d+)")
+
+def extract_point(s: str) -> Point:
+    m = pre.search(s)
+    return int(m.group(1)), int(m.group(2))
+
+def combine(a,b, ap, bp) -> Point:
+    return (a[0] * ap + b[0] * bp, a[1] * ap + b[1] * bp)
+
+import sympy as sym
+
+def solveit(a: Point, b: Point, t: Point):
+    am, bm = sym.symbols("am,bm")
+    eq1 = sym.Eq(t[X] - (a[X]*am + b[X]*bm), 0)
+    eq2 = sym.Eq(t[Y] - (a[Y]*am + b[Y]*bm), 0)
+    result = sym.solve([eq1,eq2],(am,bm))
+
+    amv, bmv = result.values()
+    if type(amv) != sym.core.numbers.Integer or type(bmv) != sym.core.numbers.Integer:
+        return None
+    
+    return amv, bmv
+
+lines = load_s(13,"input.txt").split("\n")
+offset = (10000000000000,10000000000000)
+machines = [{"A": extract_point(lines[i]), "B": extract_point(lines[i+1]), "P": extract_point(lines[i+2])} for i in range(0, len(lines), 4)]
+
+total = 0
+for result in [solveit(m["A"],m["B"],padd(m["P"], offset)) for m in machines]:
+    if result:
+        total += result[0] * 3 + result[1]
+
+return total        
+
+#+end_src
+
+#+RESULTS:
+: 108713182988244
