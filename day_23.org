@@ -1,0 +1,101 @@
+* Day N of AOC 2024
+
+https://adventofcode.com/2024/day/N
+* Initialize
+
+#+begin_src elisp
+    (pyvenv-activate "~/projects/project_venv_312/")
+  ; This is needed to make sure python indentation isn't messed up
+  (setq org-src-preserve-indentation t)
+
+  ; This is needed on the linux machine for some reason. The activate
+  ; above doesn't seem sufficient
+  (setq org-babel-python-command "~/projects/project_venv_312/bin/python3")
+
+  ; Stops confirmation when evaling python
+  (defun my-org-confirm-babel-evaluate (lang body)
+    (not (member lang '("python"))))
+
+  (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+
+  (setq-default indent-tabs-mode nil)
+
+#+end_src
+
+#+RESULTS:
+
+* Star 1
+
+#+begin_src python :results value
+from utils import load_s
+
+filename = "puzzle.txt"
+
+connections = {}
+connected = {}
+
+for c1,c2 in [x for x in [line.split("-") for line in load_s(23,filename).split("\n") if line]]:
+    for from_c, to_c in ((c1,c2),(c2,c1)):
+        if not connections.get(from_c):
+            connections[from_c] = []
+        connections[from_c].append(to_c)
+        connected[(from_c,to_c)] = True
+                   
+sets = set()
+
+for c1,c2s in connections.items():
+    for c2 in c2s:
+        for c3 in connections.get(c2,[]):
+            if c3 != c1 and connected.get((c1,c3)):
+                sets.add(tuple(sorted([c1,c2,c3])))
+
+return len(sorted([s for s in sets if s[0].startswith("t") or s[1].startswith("t") or s[2].startswith("t")]))
+
+#+end_src
+
+#+RESULTS:
+: 1284
+
+
+* Star 2
+
+- All nodes connected to same number of nodes
+- Note -- used https://csacademy.com/app/graph_editor/ to visualize graph when thinking
+
+#+begin_src python :results value
+from utils import load_s
+
+filename = "puzzle.txt"
+
+edges = {}
+
+for c1,c2 in [x for x in [line.split("-") for line in load_s(23,filename).split("\n") if line]]:
+    for from_c, to_c in ((c1,c2),(c2,c1)):
+        if not edges.get(from_c):
+            edges[from_c] = []
+        edges[from_c].append(to_c)
+
+results = []
+
+for n, el in edges.items():
+    connected = {}
+    for e1 in el:
+        connected[e1] = {e1: 1, n: 1}
+        for e2 in el:
+            if e1 != e2:
+                connected[e1][e2] = 1 if e2 in edges.get(e1,[]) else 0
+                    
+    results.append((n, connected))
+
+solution = {}    
+for n, el in results:
+    for k, d in el.items():
+        k = tuple(sorted([c for c,v in d.items() if v > 0]))
+        solution[k] = solution.get(k,0) + 1
+
+return ','.join([c for c,l in solution.items() if l == max(solution.values())][0])
+#+end_src
+
+#+RESULTS:
+: bv,cm,dk,em,gs,jv,ml,oy,qj,ri,uo,xk,yw
+
